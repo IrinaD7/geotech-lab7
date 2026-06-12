@@ -2,8 +2,11 @@
   "name": "geotech-lab7",
   "private": true,
   "version": "0.0.0",
+  "homepage": "https://IrinaD7.github.io/geotech-lab7",
   "type": "module",
   "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",

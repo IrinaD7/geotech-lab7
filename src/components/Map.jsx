@@ -36,7 +36,7 @@ const heatmapLayer = {
       ["linear"],
       ["heatmap-density"],
       0,
-      "rgba(0, 0, 0, 0)",
+      "rgba(0,0,0,0)",
       0.2,
       "#008080",
       0.4,
@@ -76,15 +76,15 @@ const touristLayer = {
 
 export const Map = () => {
   const mapRef = useRef(null);
-  const [viewMode, setViewMode] = useState("points");
-  const [showRoute, setShowRoute] = useState(true);
   const directionsRef = useRef(null);
 
-  useEffect(() => {
-    let map;
+  const [showPoints, setShowPoints] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showTourist, setShowTourist] = useState(false);
 
+  useEffect(() => {
     load().then((mapglAPI) => {
-      map = new mapglAPI.Map("map-container", {
+      const map = new mapglAPI.Map("map-container", {
         center: MAP_CENTER,
         zoom: 14.5,
         key: "c89fa1d6-faa6-4e43-806c-b57da7014cdc",
@@ -102,28 +102,10 @@ export const Map = () => {
         attributes: { id: "tourist-source" },
       });
 
-      const directions = new mapglAPI.Directions(map, {
+      directionsRef.current = new Directions(map, {
         directionsApiKey: "c89fa1d6-faa6-4e43-806c-b57da7014cdc",
       });
-      directionsRef.current = directions;
-
-      const routeCoordinates = touristRoutePoints.map((p) => p.coords);
-
-      map.on("styleload", () => {
-        map.addLayer(viewMode === "points" ? pointsLayer : heatmapLayer);
-        map.addLayer(touristLayer);
-
-        if (showRoute) {
-          directions.pedestrianRoute({
-            points: routeCoordinates,
-            style: {
-              routeLineColor: "#008080",
-              routeLineWidth: 6,
-              substrateLineWidth: 8,
-            },
-          });
-        }
-      });
+      console.log("Directions создан:", directionsRef.current);
     });
 
     return () => {
@@ -131,29 +113,54 @@ export const Map = () => {
     };
   }, []);
 
-  const toggleViewMode = () => {
+  const togglePoints = () => {
     const map = mapRef.current;
     if (!map) return;
 
-    try {
-      map.removeLayer("dtp-points-layer");
-    } catch (e) {}
-    try {
-      map.removeLayer("dtp-heatmap-layer");
-    } catch (e) {}
-
-    const newMode = viewMode === "points" ? "heatmap" : "points";
-    setViewMode(newMode);
-    map.addLayer(newMode === "points" ? pointsLayer : heatmapLayer);
+    if (showPoints) {
+      try {
+        map.removeLayer("dtp-points-layer");
+      } catch (e) {}
+    } else {
+      map.addLayer(pointsLayer);
+    }
+    setShowPoints(!showPoints);
   };
 
-  const toggleRoute = () => {
-    const directions = directionsRef.current;
-    if (!directions) return;
+  const toggleHeatmap = () => {
+    const map = mapRef.current;
+    if (!map) return;
 
-    if (showRoute) {
-      directions.clear(); // Удаляем маршрут
+    if (showHeatmap) {
+      try {
+        map.removeLayer("dtp-heatmap-layer");
+      } catch (e) {}
     } else {
+      map.addLayer(heatmapLayer);
+    }
+    setShowHeatmap(!showHeatmap);
+  };
+
+  const toggleTourist = () => {
+    const map = mapRef.current;
+    const directions = directionsRef.current;
+    console.log("toggleTourist вызван", {
+      map: !!map,
+      directions: !!directions,
+    });
+    if (!map || !directions) {
+      console.error("map или directions не готовы");
+      return;
+    }
+
+    if (showTourist) {
+      try {
+        map.removeLayer("tourist-points-layer");
+      } catch (e) {}
+      directions.clear();
+    } else {
+      map.addLayer(touristLayer);
+
       const routeCoordinates = touristRoutePoints.map((p) => p.coords);
       directions.pedestrianRoute({
         points: routeCoordinates,
@@ -164,7 +171,7 @@ export const Map = () => {
         },
       });
     }
-    setShowRoute(!showRoute);
+    setShowTourist(!showTourist);
   };
 
   return (
@@ -176,29 +183,29 @@ export const Map = () => {
         flexDirection: "column",
       }}
     >
-      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <div style={{ flex: 1 }}>
         <MapWrapper />
       </div>
 
       <div
         style={{
           padding: "15px",
-          textAlign: "center",
           display: "flex",
           gap: "10px",
           justifyContent: "center",
+          flexWrap: "wrap",
         }}
       >
-        <button onClick={toggleViewMode} class="btn btn-blue">
-          {viewMode === "points"
-            ? "Показать тепловую карту"
-            : "Показать точки ДТП"}
+        <button onClick={togglePoints} className="btn btn-blue">
+          {showPoints ? "Скрыть точки ДТП" : "Показать точки ДТП"}
         </button>
 
-        <button onClick={toggleRoute} class="btn btn-red">
-          {showRoute
-            ? "Скрыть туристический маршрут"
-            : "Показать туристический маршрут"}
+        <button onClick={toggleHeatmap} className="btn btn-blue">
+          {showHeatmap ? "Скрыть тепловую карту" : "Показать тепловую карту"}
+        </button>
+
+        <button onClick={toggleTourist} className="btn btn-red">
+          {showTourist ? "Скрыть маршрут" : "Показать маршрут"}
         </button>
       </div>
     </div>
